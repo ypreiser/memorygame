@@ -2,10 +2,11 @@ import React, { useRef, useState, useEffect } from 'react'
 import GameFinishedModal from './GameFinishedModal';
 import Card from './Card'
 import Settings from './Settings';
+import useSound from './UseSound';  
 export default function Cards() {
 
 
-    const [numUniqueCards, setNumUniqueCards] = useState(6);
+    const [numUniqueCards, setNumUniqueCards] = useState(3);
     const [previousCardState, setPreviousCardState] = useState(-1)
     const previousIndex = useRef(-1)
     const [timer, setTimer] = useState(0);
@@ -17,8 +18,19 @@ export default function Cards() {
     const [score, setScore] = useState({ player1: 0, player2: 0 });
     const [gameMode, setGameMode] = useState('single');
     const [showSettings, setShowSettings] = useState(false);
+    const [isSettingsOpen, setSettingsOpen] = useState(false);
+    const playCorrectSound = useSound('./Correct Answer sound effect.mp3');
+    const playWinSound = useSound("./cheer.mp3");
 
-    const mode = (m) =>{
+    const openSettings = () => {
+        setSettingsOpen(true);
+    };
+
+    const closeSettings = () => {
+        setSettingsOpen(false);
+    };
+
+    const mode = (m) => {
         setGameMode(m)
         resetGame()
     }
@@ -46,6 +58,14 @@ export default function Cards() {
 
         return () => clearInterval(interval);
     }, [gameStarted, isGameFinished]);
+
+    const formatTime = (timeInSeconds) => {
+        const minutes = Math.floor(timeInSeconds / 60);
+        const seconds = timeInSeconds % 60;
+        const formattedMinutes = String(minutes).padStart(2, '0');
+        const formattedSeconds = String(seconds).padStart(2, '0');
+        return `${formattedMinutes}:${formattedSeconds}`;
+    };
 
     const switchPlayer = () => {
         setCurrentPlayer((prevPlayer) => (prevPlayer === 1 ? 2 : 1));
@@ -87,13 +107,14 @@ export default function Cards() {
     const checkGameCompletion = () => {
         const isFinished = cards.every((card) => card.status === 'matched');
         if (isFinished) {
+            playWinSound()
             setGameFinished(true);
         }
     };
 
     const chooseDeck = (num) => {
         setNumUniqueCards(num);
-    };
+    };  
 
     useEffect(() => {
         if (numUniqueCards) {
@@ -114,6 +135,7 @@ export default function Cards() {
             cards[currentCard].status = 'matched'
             setPreviousCardState(-1)
             updateScore()
+            playCorrectSound()
         } else {
             cards[currentCard].status = 'active'
             setCards([...cards])
@@ -139,8 +161,8 @@ export default function Cards() {
 
         if (index !== previousIndex.current) {
             if (cards[index].status === 'matched') {
-                alert('already matched')
-            } else {
+                return
+                } else {
                 if (previousCardState === -1) {
                     previousIndex.current = index
                     cards[index].status = 'active'
@@ -152,7 +174,7 @@ export default function Cards() {
                 }
             }
         } else {
-            alert('card currently seleted')
+            return
         }
 
     }
@@ -166,18 +188,18 @@ export default function Cards() {
                     })}
                 </div>
                 <div className="game-info">
-                    <button className="settings-button" onClick={() => setShowSettings(!showSettings)}>
+                    <button className="settingsButton" onClick={openSettings}>
                         Settings
                     </button>
                     <div className={`settings-container ${showSettings ? 'show' : ''}`}>
 
-                    {showSettings && <Settings mode={mode} chooseDeck={chooseDeck} />}
+                        {showSettings && <Settings mode={mode} chooseDeck={chooseDeck} />}
                     </div>
 
                     <button className="newGame" onClick={resetGame}>New Game</button>
                     {gameMode === 'single' ? (
                         <>
-                            <div className='timer'>Timer: {timer} seconds</div>
+                            <div className='timer'>Timer: {formatTime(timer)}</div>
                             <div className='turns'>Turns: {turns}</div>
                         </>
                     ) : (
@@ -191,8 +213,11 @@ export default function Cards() {
                         </>
                     )}
                 </div>
+                {isSettingsOpen && (
+                    <Settings onClose={closeSettings} chooseDeck={chooseDeck} mode={mode} />
+                )}
                 {isGameFinished && (
-                    <GameFinishedModal onClose={closeModal} time={timer} turns={turns} score={score} />
+                    <GameFinishedModal onClose={closeModal} formatTime={formatTime}  time ={timer} turns={turns} score={score} gameMode={gameMode} />
                 )}
 
             </div >
