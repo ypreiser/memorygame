@@ -94,7 +94,6 @@ export default function Cards() {
 
 
     const finishGame = () => {
-
         setGameFinished(true);
     };
 
